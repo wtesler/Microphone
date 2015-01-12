@@ -125,37 +125,46 @@ public class Microphone extends Thread {
 		}
 	}
 
+	@Override
+	public void interrupt() {
+		super.interrupt();
+		isRunning = false;
+	}
+
+	@Override
+	public boolean isInterrupted() {
+		return !isRunning;
+	}
+
+	public boolean isRunning() {
+		return isRunning;
+	}
+
 	public void startRecording() {
 		start();
 	}
 
 	public void stopRecording() {
-		isRunning = false;
+		interrupt();
 	}
 
-	void startRecording(AudioFormat format, MicrophoneListener listener) {
+	void startRecording(AudioFormat format, MicrophoneListener listener)
+			throws LineUnavailableException {
 
 		isRunning = true;
 
-		try {
-
-			// RECORDING STARTED
-			mLine.open(format, (int) (5 * format.getFrameRate()));
-			mLine.start();
-			byte[] data = new byte[(int) format.getFrameRate()];
-			while (isRunning) {
-				mLine.read(data, 0, data.length);
-				listener.onReceive(data);
-			}
-
-			// RECORDING STOPPED
-			mLine.drain();
-			mLine.close();
-
-		} catch (LineUnavailableException | NullPointerException e) {
-			isRunning = false;
-			e.printStackTrace();
+		// RECORDING STARTED
+		mLine.open(format, (int) (5 * format.getFrameRate()));
+		mLine.start();
+		byte[] data = new byte[(int) format.getFrameRate()];
+		while (isRunning) {
+			mLine.read(data, 0, data.length);
+			listener.onReceive(data);
 		}
+
+		// RECORDING STOPPED
+		mLine.drain();
+		mLine.close();
 	}
 
 	void listMixers() {
@@ -175,7 +184,7 @@ public class Microphone extends Thread {
 			initialize(INTERACTIVE);
 			startRecording(mFormat, mListener);
 		} catch (LineUnavailableException e) {
-			e.printStackTrace();
+			interrupt();
 		}
 	}
 
